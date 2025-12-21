@@ -78,35 +78,7 @@ def track_generator(
         t += time_delta
 
 
-# Example usage
-if __name__ == "__main__":
-    # Origin point on Earth's surface (approximately)
-    origin = np.array([6378137.0, 0.0, 0.0])  # On equator at prime meridian
-
-    # Generate a smooth track
-    gen = track_generator(
-        origin_ecef=origin,
-        scale_meters=10000.0,  # 10km flight volume
-        duration_seconds=60.0,  # 1 minute flight
-        time_delta=1.0,  # 1 second samples
-        num_waypoints=6,  # 6 waypoints for smooth curves
-        # seed=42  # Reproducible
-    )
-
-    # Collect points
-    times = []
-    positions = []
-    for t, pos in gen:
-        times.append(t)
-        positions.append(pos)
-        if t == 0 or t == 60 or t % 10 == 0:  # Print every 10 seconds
-            print(f"t={t:6.1f}s: ECEF {pos}")
-
-    # Optional: visualize the path
-    positions = np.array(positions)
-    print(f"\nGenerated {len(positions)} points")
-    print(f"Distance traveled: {np.sum(np.linalg.norm(np.diff(positions, axis=0), axis=1)):.1f} m")
-
+def plot_positions(positions: np.ndarray):
     # Create 3D plot
     fig = plt.figure(figsize=(10, 8))
     ax = fig.add_subplot(111, projection='3d')
@@ -131,3 +103,37 @@ if __name__ == "__main__":
     ax.legend()
 
     plt.show()
+
+
+
+# Example usage
+if __name__ == "__main__":
+    # origin = np.array([6378137.0, 0.0, 0.0])  # On equator at prime meridian
+    # boise_lla = np.array([43.6116, -116.2034, 824.0])
+    boise_ecef = np.array([-2042359.37, -4150317.47, 4377856.4])
+
+    # Generate a smooth track
+    gen = track_generator(
+        origin_ecef=boise_ecef,
+        scale_meters=10000.0,  # 10km flight volume
+        duration_seconds=60.0,  # 1 minute flight
+        time_delta=1.0,  # 1 second samples
+        num_waypoints=6,  # 6 waypoints for smooth curves
+        # seed=42  # Reproducible
+    )
+
+    # Collect points
+    times = []
+    positions = []
+    for t, pos in gen:
+        times.append(t)
+        positions.append(pos)
+        if t % 10 == 0:  # Print every 10 seconds
+            print(f"t={t:6.1f}s: ECEF {pos}")
+
+    # Optional: visualize the path
+    positions = np.array(positions)
+    print(f"\nGenerated {len(positions)} points")
+    print(f"Distance traveled: {np.sum(np.linalg.norm(np.diff(positions, axis=0), axis=1)):.1f} m")
+
+    plot_positions(positions)

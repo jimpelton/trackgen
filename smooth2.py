@@ -1,5 +1,5 @@
 import numpy as np
-from typing import Generator, Tuple, Callable, Optional
+from typing import Generator, Tuple, Callable, Optional, TypeAlias, Dict, List
 from scipy.interpolate import CubicSpline
 from dataclasses import dataclass
 import matplotlib.pyplot as plt
@@ -12,6 +12,12 @@ class FlightConstraints:
     max_velocity: float = 100.0  # m/s (e.g., ~220 mph for small aircraft)
     max_acceleration: float = 20.0  # m/s² (e.g., ~2g for maneuvering)
     max_jerk: float = 50.0  # m/s³ (rate of change of acceleration)
+
+@dataclass
+class PathPoint:
+    position: np.ndarray
+    velocity: np.ndarray
+    acceleration: np.ndarray
 
 
 def create_constrained_path(
@@ -38,43 +44,19 @@ def create_constrained_path(
         velocity = np.array([s(t_clamped, 1) for s in pos_splines])  # First derivative
         acceleration = np.array([s(t_clamped, 2) for s in pos_splines])  # Second derivative
 
+        # 3d vectors
         return position, velocity, acceleration
+        # return PathPoint(position, velocity, acceleration)
 
     return evaluate
 
 
-def compute_velocity_profile(
-        path_func: Callable,
-        duration: float,
-        scale: float,
-        constraints: FlightConstraints,
-        num_samples: int = 1000
-) -> Tuple[np.ndarray, np.ndarray]:
-    """
-    Compute a velocity profile that respects constraints.
 
-    Returns (times, velocities) where velocities are speed limits at each time.
-    """
-    times = np.linspace(0, duration, num_samples)
-    velocities = np.zeros(num_samples)
 
-    for i, t in enumerate(times):
-        t_norm = t / duration
-        _, vel_norm, acc_norm = path_func(t_norm)
-
-        # Scale to ECEF space
-        vel_ecef = vel_norm * scale / duration
-        acc_ecef = acc_norm * scale / (duration ** 2)
-
-        # Compute speeds
-        speed = np.linalg.norm(vel_ecef)
-        acc_mag = np.linalg.norm(acc_ecef)
-
-        # Limit based on constraints
-        max_speed_from_accel = np.sqrt(constraints.max_acceleration * scale)
-        velocities[i] = min(speed, constraints.max_velocity, max_speed_from_accel)
-
-    return times, velocities
+Time: TypeAlias = float
+ECEFPositions_M: TypeAlias = np.ndarray
+ECEFVelocities_MPS: TypeAlias = np.ndarray
+Acceleration: TypeAlias = np.ndarray
 
 
 def track_generator_constrained(
@@ -84,7 +66,7 @@ def track_generator_constrained(
         time_delta: float,
         num_waypoints: int = 6,
         seed: Optional[int] = None
-) -> Generator[Tuple[float, np.ndarray, np.ndarray, np.ndarray], None, None]:
+) -> Generator[Tuple[Time, ECEFPositions_M, ECEFVelocities_MPS, Acceleration], None, None]:
     """
     Generate ECEF track with velocity and acceleration constraints.
 
@@ -103,8 +85,11 @@ def track_generator_constrained(
         np.random.seed(seed)
 
     # Generate random waypoints in normalized space
+    # waypoints is num_waypoints number of 3D arrays of random numbers.
     waypoints = np.random.rand(num_waypoints, 3)
+    # initial point
     waypoints[0] = np.array([0.2, 0.2, 0.2])
+    # destination point
     waypoints[-1] = np.array([0.8, 0.8, 0.8])
 
     # Smooth out middle waypoints to avoid sharp turns
@@ -119,6 +104,7 @@ def track_generator_constrained(
     # Compute path length in normalized space
     samples = np.linspace(0, 1, 100)
     positions = np.array([path_func(t)[0] for t in samples])
+    # measure length of path (break it into tiny lines and measure each length)
     path_length_norm = np.sum(np.linalg.norm(np.diff(positions, axis=0), axis=1))
     path_length_ecef = path_length_norm * scale_meters
 
@@ -165,7 +151,7 @@ def track_generator_constrained(
                 vel_ecef = prev_velocity + actual_accel * time_delta
                 acc_ecef = actual_accel
 
-        yield (t, pos_ecef, vel_ecef, acc_ecef)
+        yield t, pos_ecef, vel_ecef, acc_ecef
 
         prev_velocity = vel_ecef.copy()
         t += time_delta
@@ -216,50 +202,14 @@ def plot_track(data: list, constraints: FlightConstraints):
     plt.show()
 
 
-# Example usage with constraint validation
-if __name__ == "__main__":
-    # Define realistic constraints for a small drone
-    drone_constraints = FlightConstraints(
-        max_velocity=30.0,  # 30 m/s (~67 mph)
-        max_acceleration=15.0,  # 15 m/s² (~1.5g)
-        max_jerk=30.0  # Smooth changes
-    )
-
-    # Origin point
-    origin = np.array([6378137.0, 0.0, 0.0])
-
-    print("Generating constrained track...")
-    print(f"Max velocity: {drone_constraints.max_velocity} m/s")
-    print(f"Max acceleration: {drone_constraints.max_acceleration} m/s²")
-    print()
-
-    gen = track_generator_constrained(
-        origin_ecef=origin,
-        scale_meters=5000.0,
-        constraints=drone_constraints,
-        time_delta=0.5,  # 0.5 second samples
-        num_waypoints=8,
-        # seed=42
-    )
-
-    # Collect and analyze track
-    data = []
-    for t, pos, vel, acc in gen:
-        data.append({
-            'time': t,
-            'position': pos,
-            'velocity': vel,
-            'acceleration': acc,
-            'speed': np.linalg.norm(vel),
-            'accel_mag': np.linalg.norm(acc)
-        })
-
-    # Print sample points
+def print_sample_points(data: List[Dict]):
     print("\nSample points:")
+
+
     for i in [0, len(data) // 4, len(data) // 2, 3 * len(data) // 4, -1]:
         d = data[i]
-        print(f"t={d['time']:6.1f}s: speed={d['speed']:6.2f} m/s, "
-              f"accel={d['accel_mag']:6.2f} m/s²")
+    print(f"t={d['time']:6.1f}s: speed={d['speed']:6.2f} m/s, "
+          f"accel={d['accel_mag']:6.2f} m/s²")
 
     # Validate constraints
     print("\n" + "=" * 60)
@@ -284,4 +234,84 @@ if __name__ == "__main__":
 
     # Plot the track
     print("\nGenerating 3D visualization...")
+
+
+
+
+# Example usage with constraint validation
+if __name__ == "__main__":
+    # Define realistic constraints for a small drone
+    drone_constraints = FlightConstraints(
+        max_velocity=30.0,  # 30 m/s (~67 mph)
+        max_acceleration=15.0,  # 15 m/s² (~1.5g)
+        max_jerk=30.0  # Smooth changes
+    )
+
+    # Origin point
+    # origin = np.array([6378137.0, 0.0, 0.0])
+    boise_ecef = np.array([-2042359.37, -4150317.47, 4377856.4])
+
+    print("Generating constrained track...")
+    print(f"Max velocity: {drone_constraints.max_velocity} m/s")
+    print(f"Max acceleration: {drone_constraints.max_acceleration} m/s²")
+    print()
+
+    gen = track_generator_constrained(
+        origin_ecef=boise_ecef,
+        scale_meters=5000.0,
+        constraints=drone_constraints,
+        time_delta=0.5,  # 0.5 second samples
+        num_waypoints=8,
+        # seed=43
+    )
+
+    # Collect and analyze track
+    data = []
+    for t, pos, vel, acc in gen:
+        data.append({
+            'time': t,
+            'position': pos,
+            'velocity': vel,
+            'acceleration': acc,
+            'speed': np.linalg.norm(vel),
+            'accel_mag': np.linalg.norm(acc)
+        })
+
+    print_sample_points(data)
     plot_track(data, drone_constraints)
+
+
+
+
+# def compute_velocity_profile(
+#         path_func: Callable,
+#         duration: float,
+#         scale: float,
+#         constraints: FlightConstraints,
+#         num_samples: int = 1000
+# ) -> Tuple[np.ndarray, np.ndarray]:
+#     """
+#     Compute a velocity profile that respects constraints.
+#
+#     Returns (times, velocities) where velocities are speed limits at each time.
+#     """
+#     times = np.linspace(0, duration, num_samples)
+#     velocities = np.zeros(num_samples)
+#
+#     for i, t in enumerate(times):
+#         t_norm = t / duration
+#         _, vel_norm, acc_norm = path_func(t_norm)
+#
+#         # Scale to ECEF space
+#         vel_ecef = vel_norm * scale / duration
+#         acc_ecef = acc_norm * scale / (duration ** 2)
+#
+#         # Compute speeds
+#         speed = np.linalg.norm(vel_ecef)
+#         acc_mag = np.linalg.norm(acc_ecef)
+#
+#         # Limit based on constraints
+#         max_speed_from_accel = np.sqrt(constraints.max_acceleration * scale)
+#         velocities[i] = min(speed, constraints.max_velocity, max_speed_from_accel)
+#
+#     return times, velocities
