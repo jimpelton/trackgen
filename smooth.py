@@ -4,13 +4,8 @@ from scipy.interpolate import CubicSpline
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
-
-def create_smooth_path(num_waypoints: int = 5, seed: int = None) -> Callable[[float], np.ndarray]:
-    """
-    Create a smooth 3D path function that maps t ∈ [0,1] to positions ∈ [0,1]³.
-
-    Uses random waypoints with cubic spline interpolation for smooth, organic motion.
-    """
+RANDOM_SEED = None
+def generate_waypoints(num_waypoints: int, seed: int|None = RANDOM_SEED) -> Tuple[np.ndarray, np.ndarray]:
     if seed is not None:
         np.random.seed(seed)
 
@@ -21,6 +16,17 @@ def create_smooth_path(num_waypoints: int = 5, seed: int = None) -> Callable[[fl
     # Ensure start and end are within bounds
     waypoints[0] = np.array([0.1, 0.1, 0.9])
     waypoints[-1] = np.array([0.9, 0.9, 0.9])
+
+    return t_waypoints, waypoints
+
+
+def create_smooth_path(num_waypoints: int = 5, seed: int = None) -> Callable[[float], np.ndarray]:
+    """
+    Create a smooth 3D path function that maps t ∈ [0,1] to positions ∈ [0,1]³.
+
+    Uses random waypoints with cubic spline interpolation for smooth, organic motion.
+    """
+    t_waypoints, waypoints = generate_waypoints(num_waypoints, seed)
 
     # Create cubic splines for each dimension
     splines = [CubicSpline(t_waypoints, waypoints[:, i], bc_type='natural')
