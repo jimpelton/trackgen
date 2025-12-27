@@ -19,17 +19,17 @@ def create_smooth_path(num_waypoints: int = 5, seed: int = None) -> Callable[[fl
     waypoints = np.random.rand(num_waypoints, 3)
 
     # Ensure start and end are within bounds
-    waypoints[0] = np.array([0.1, 0.1, 0.1])
+    waypoints[0] = np.array([0.1, 0.1, 0.9])
     waypoints[-1] = np.array([0.9, 0.9, 0.9])
 
     # Create cubic splines for each dimension
     splines = [CubicSpline(t_waypoints, waypoints[:, i], bc_type='natural')
                for i in range(3)]
 
-    def path(t: float) -> np.ndarray:
-        """Evaluate path at normalized time t ∈ [0,1]"""
-        t_clamped = np.clip(t, 0, 1)
-        return np.array([spline(t_clamped) for spline in splines])
+    def path(s: float) -> np.ndarray:
+        """Evaluate path at s ∈ [0,1]"""
+        s_clamped = np.clip(s, 0, 1)
+        return np.array([spline(s_clamped) for spline in splines])
 
     return path
 
