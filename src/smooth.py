@@ -1,37 +1,60 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from .generator import track_generator
-from .path import create_smooth_path
-from .waypoints import create_waypoints
+from tracks.generator import track_generator
+from tracks.path import create_smooth_path
+from tracks.waypoints import create_waypoints
 
 
 def plot_positions(positions: np.ndarray):
     # Create 3D plot
     fig = plt.figure(figsize=(10, 8))
-    ax = fig.add_subplot(111, projection='3d')
+    ax = fig.add_subplot(111, projection="3d")
 
     # Plot the path
-    ax.plot(positions[:, 0], positions[:, 1], positions[:, 2],
-            'b-', linewidth=2, label='Flight Path')
-    ax.plot(positions[:, 0], positions[:, 1], positions[:, 2],
-            'ro', markersize=4, label='Sample Points')
+    ax.plot(
+        positions[:, 0],
+        positions[:, 1],
+        positions[:, 2],
+        "b-",
+        linewidth=2,
+        label="Flight Path",
+    )
+    ax.plot(
+        positions[:, 0],
+        positions[:, 1],
+        positions[:, 2],
+        "ro",
+        markersize=4,
+        label="Sample Points",
+    )
 
     # Mark start and end points
-    ax.plot([positions[0, 0]], [positions[0, 1]], [positions[0, 2]],
-            'go', markersize=10, label='Start')
-    ax.plot([positions[-1, 0]], [positions[-1, 1]], [positions[-1, 2]],
-            'rs', markersize=10, label='End')
+    ax.plot(
+        [positions[0, 0]],
+        [positions[0, 1]],
+        [positions[0, 2]],
+        "go",
+        markersize=10,
+        label="Start",
+    )
+    ax.plot(
+        [positions[-1, 0]],
+        [positions[-1, 1]],
+        [positions[-1, 2]],
+        "rs",
+        markersize=10,
+        label="End",
+    )
 
     # Set labels and title
-    ax.set_xlabel('ECEF X (m)')
-    ax.set_ylabel('ECEF Y (m)')
-    ax.set_zlabel('ECEF Z (m)')
-    ax.set_title('3D Flight Path Visualization')
+    ax.set_xlabel("ECEF X (m)")
+    ax.set_ylabel("ECEF Y (m)")
+    ax.set_zlabel("ECEF Z (m)")
+    ax.set_title("3D Flight Path Visualization")
     ax.legend()
 
     plt.show()
-
 
 
 # Example usage
@@ -43,14 +66,13 @@ if __name__ == "__main__":
     s_waypoints, waypoints = create_waypoints(6, seed=42)
     path_func = create_smooth_path(s_waypoints, waypoints)
 
-
     # Generate a smooth track
     gen = track_generator(
         origin_ecef=boise_ecef,
         scale_meters=10000.0,  # 10km flight volume
         duration_seconds=60.0,  # 1 minute flight
         time_delta=1.0,  # 1 second samples
-        path_func=path_func
+        path_func=path_func,
     )
 
     # Collect points

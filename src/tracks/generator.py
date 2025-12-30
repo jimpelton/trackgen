@@ -1,13 +1,14 @@
+from typing import Generator, Tuple, Callable
+
+import numpy as np
+
+
 def track_generator(
         origin_ecef: np.ndarray,
         scale_meters: float,
         duration_seconds: float,
         time_delta: float,
-        path_func: Callable[[float], np.ndarray] = None,
-        t_waypoints: np.ndarray,
-        waypoints: np.ndarray,
-        # num_waypoints: int = 5,
-        seed: int = None
+        path_func: Callable[[float], np.ndarray],
 ) -> Generator[Tuple[float, np.ndarray], None, None]:
     """
     Generate smooth ECEF track coordinates following a curved path.
@@ -25,9 +26,6 @@ def track_generator(
         Tuple of (time, position_ecef)
     """
 
-    if path_func is None:
-        path_func = create_smooth_path(t_waypoints, waypoints, seed)
-
     t = 0.0
     while t <= duration_seconds:
         # Normalize time to [0, 1]
@@ -44,3 +42,10 @@ def track_generator(
         yield t, pos_ecef
         t += time_delta
 
+
+class Track:
+    def __init__(self, path_func: Callable[[float], np.ndarray]):
+        self._path_func = path_func
+
+        self._s0 = 0.0
+        self._v0 = 0.0
