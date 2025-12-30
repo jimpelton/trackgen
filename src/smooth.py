@@ -1,43 +1,9 @@
 import numpy as np
-from typing import Generator, Tuple, Callable
-from scipy.interpolate import CubicSpline
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 
-RANDOM_SEED = None
-def generate_waypoints(num_waypoints: int, seed: int|None = RANDOM_SEED) -> Tuple[np.ndarray, np.ndarray]:
-    if seed is not None:
-        np.random.seed(seed)
-
-    # Create random waypoints in normalized space
-    t_waypoints = np.linspace(0, 1, num_waypoints)
-    waypoints = np.random.rand(num_waypoints, 3)
-
-    # Ensure start and end are within bounds
-    waypoints[0] = np.array([0.1, 0.1, 0.9])
-    waypoints[-1] = np.array([0.9, 0.9, 0.9])
-
-    return t_waypoints, waypoints
-
-
-def create_smooth_path(t_waypoints: np.ndarray, waypoints: np.ndarray, seed: int = None) -> Callable[[float], np.ndarray]:
-    """
-    Create a smooth 3D path function that maps t ∈ [0,1] to positions ∈ [0,1]³.
-
-    Uses random waypoints with cubic spline interpolation for smooth, organic motion.
-    """
-
-    # Create cubic splines for each dimension
-    splines = [CubicSpline(t_waypoints, waypoints[:, i], bc_type='natural')
-               for i in range(3)]
-
-    def path(s: float) -> np.ndarray:
-        """Evaluate path at s ∈ [0,1]"""
-        s_clamped = np.clip(s, 0, 1)
-        return np.array([spline(s_clamped) for spline in splines])
-
-    return path
-
+from .generator import track_generator
+from .path import create_smooth_path
+from .waypoints import create_waypoints
 
 
 def plot_positions(positions: np.ndarray):
@@ -74,7 +40,9 @@ if __name__ == "__main__":
     # boise_lla = np.array([43.6116, -116.2034, 824.0])
     boise_ecef = np.array([-2042359.37, -4150317.47, 4377856.4])
 
-    t_waypoints, waypoints = generate_waypoints(6, seed=42)
+    s_waypoints, waypoints = create_waypoints(6, seed=42)
+    path_func = create_smooth_path(s_waypoints, waypoints)
+
 
     # Generate a smooth track
     gen = track_generator(
@@ -82,9 +50,7 @@ if __name__ == "__main__":
         scale_meters=10000.0,  # 10km flight volume
         duration_seconds=60.0,  # 1 minute flight
         time_delta=1.0,  # 1 second samples
-        t_waypoints=t_waypoints,
-        waypoints=waypoints,
-        seed=42  # Reproducible
+        path_func=path_func
     )
 
     # Collect points
