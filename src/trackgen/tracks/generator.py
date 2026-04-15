@@ -1,10 +1,11 @@
 from typing import Generator, Tuple, Callable
 
 import numpy as np
+import pymap3d
 
 
 def track_generator(
-        origin_ecef: np.ndarray,
+        origin_lla: np.ndarray,
         scale_meters: float,
         duration_seconds: float,
         time_delta: float,
@@ -14,17 +15,16 @@ def track_generator(
     Generate smooth ECEF track coordinates following a curved path.
 
     Args:
-        origin_ecef: Starting position in ECEF (x, y, z) meters
+        origin_lla: Origin on the ground in (lat_deg, lon_deg, alt_meters)
         scale_meters: Size of the flight volume in meters (normalized space scaled to this)
         duration_seconds: Total duration of the track
         time_delta: Time step between points in seconds
-        path_func: Optional custom path function(t) that maps [0,1] → [0,1]³
-        num_waypoints: Number of waypoints for default path (if path_func is None)
-        seed: Random seed for reproducible paths
+        path_func: Callable path function(t) that maps [0,1] → [0,1]³
 
     Yields:
-        Tuple of (time, position_ecef)
+        Tuple of (time, position_enu) where position is always above origin altitude
     """
+    lat, lon, alt = origin_lla
 
     t = 0.0
     while t <= duration_seconds:
@@ -34,12 +34,16 @@ def track_generator(
         # Get position in normalized space [0,1]³
         pos_normalized = path_func(t_norm)
 
-        # Transform to ECEF: scale and translate
-        # Center the normalized space around origin (subtract 0.5 to go from [0,1] to [-0.5,0.5])
-        pos_centered = (pos_normalized - 0.5) * scale_meters
-        pos_ecef = origin_ecef + pos_centered
+        # Map normalized space to ENU offsets:
+        #   East/North centered on origin: [-scale/2, +scale/2]
+        #   Up always above ground: [0, scale_meters]
+        east  = (pos_normalized[0] - 0.5) * scale_meters
+        north = (pos_normalized[1] - 0.5) * scale_meters
+        up    =  pos_normalized[2]         * scale_meters
 
-        yield t, pos_ecef
+        # pos_ecef = np.array(pymap3d.enu2ecef(east, north, up, lat, lon, alt))
+
+        yield t, np.array([east, north, up])
         t += time_delta
 
 

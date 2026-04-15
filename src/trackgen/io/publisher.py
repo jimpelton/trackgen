@@ -14,13 +14,12 @@ class Publisher:
         endpoint = f"tcp://{ip}:{port}"
         self._pub.bind(endpoint)
 
-    def publish_nowait(self, pos_ecef:tuple[float, float, float]):
-        lat, lon, alt = pymap3d.ecef2geodetic(pos_ecef[0], pos_ecef[1], pos_ecef[2])
+    def publish_nowait(self, lat, lon, alt):
 
         message = json.dumps({
-            "lat": round(float(lat), 7),
-            "lon": round(float(lon), 7),
-            "alt": round(float(alt), 3),
+            "lat_deg": round(float(lat), 7),
+            "lon_deg": round(float(lon), 7),
+            "alt_hae_m": round(float(alt), 3),
         })
 
         self._pub.send_multipart([self._topic, message.encode()], flags=zmq.NOBLOCK)

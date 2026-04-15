@@ -69,7 +69,7 @@ def main():
 
     # Generate a smooth track
     gen = track_generator(
-        origin_ecef=np.array(pymap3d.geodetic2ecef(*origin_lla)),
+        origin_lla=origin_lla,
         scale_meters=scale_meters,
         duration_seconds=duration_seconds,
         time_delta=time_delta,
@@ -78,21 +78,26 @@ def main():
 
     # Collect points
     times = []
-    positions = []
-    for t, pos in gen:
+    # ecef_positions = []
+    enu_positions = []
+    for t, enu in gen:
         times.append(t)
-        positions.append(pos)
+        # ecef_positions.append(ecef)
+        enu_positions.append(enu)
         # if t % 10 == 0:  # Print every 10 seconds
         #     print(f"Generating... t={t:6.1f}s: ECEF {pos}")
 
-    positions = np.array(positions)
+    # ecef_positions = np.array(ecef_positions)
+    enu_positions = np.array(enu_positions)
 
-    print(f"\nGenerated {len(positions)} points with seed {waypoints.seed}")
-    print(f"Distance traveled: {np.sum(np.linalg.norm(np.diff(positions, axis=0), axis=1)):.1f} m")
+    print(f"\nGenerated {len(enu_positions)} points with seed {waypoints.seed}")
+    print(f"Distance traveled: {np.sum(np.linalg.norm(np.diff(enu_positions, axis=0), axis=1)):.1f} m")
 
     publisher = Publisher(ip="0.0.0.0", port=5557)
-
-    plot = ReplayPlotterSender(positions=positions, times=times, publisher=publisher)
+    # origin_ecef = pymap3d.geodetic2ecef(*origin_lla)
+    # origin_enu = pymap3d.geodetic2enu(*origin_lla)
+    plot = ReplayPlotterSender(enu_positions=enu_positions, origin_lla=origin_lla, publisher=publisher)
+    # plot = ReplayPlotterSender(positions=ecef_positions, origin_position=origin_ecef, publisher=publisher)
     plot.plot_positions()
 
     # for t, pos in zip(times, positions):
