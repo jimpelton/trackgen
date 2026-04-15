@@ -21,14 +21,6 @@ def plot_positions(positions: np.ndarray):
         linewidth=2,
         label="Flight Path",
     )
-    # ax.plot(
-    #     positions[:, 0],
-    #     positions[:, 1],
-    #     positions[:, 2],
-    #     "ro",
-    #     markersize=4,
-    #     label="Sample Points",
-    # )
 
     # Mark start and end points
     ax.plot(

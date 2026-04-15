@@ -43,9 +43,9 @@ def track_generator(
         t += time_delta
 
 
-class Track:
-    def __init__(self, path_func: Callable[[float], np.ndarray]):
-        self._path_func = path_func
-
-        self._s0 = 0.0
-        self._v0 = 0.0
+# class Track:
+#     def __init__(self, path_func: Callable[[float], np.ndarray]):
+#         self._path_func = path_func
+#
+#         self._s0 = 0.0
+#         self._v0 = 0.0
