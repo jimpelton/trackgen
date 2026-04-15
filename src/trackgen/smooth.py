@@ -1,7 +1,6 @@
 import logging
 
 import numpy as np
-import pymap3d
 
 from .replay import ReplayPlotterSender
 from .tracks import track_generator
@@ -12,7 +11,6 @@ from .io import Publisher
 logger = logging.getLogger(__name__)
 
 
-_BOISE_ECEF = np.array([-2042359.37, -4150317.47, 4377856.4])
 _BOISE_LLA = np.array([43.6116, -116.2034, 824.0])
 
 
@@ -54,7 +52,6 @@ def parse_args():
 
 # Example usage
 def main():
-    # origin = np.array([6378137.0, 0.0, 0.0])  # On equator at prime meridian
     args = parse_args()
     num_waypoints = args.num_waypoints
     seed = args.seed
@@ -63,7 +60,6 @@ def main():
     duration_seconds = args.duration
     time_delta = args.time_delta
 
-    # s_waypoints, waypoints = create_waypoints(6, seed=42)
     waypoints = create_waypoints(num_waypoints, seed=seed)
     path_func = create_smooth_path(waypoints.t_waypoints, waypoints.waypoints)
 
@@ -78,29 +74,16 @@ def main():
 
     # Collect points
     times = []
-    # ecef_positions = []
     enu_positions = []
     for t, enu in gen:
         times.append(t)
-        # ecef_positions.append(ecef)
         enu_positions.append(enu)
-        # if t % 10 == 0:  # Print every 10 seconds
-        #     print(f"Generating... t={t:6.1f}s: ECEF {pos}")
 
-    # ecef_positions = np.array(ecef_positions)
     enu_positions = np.array(enu_positions)
 
     print(f"\nGenerated {len(enu_positions)} points with seed {waypoints.seed}")
     print(f"Distance traveled: {np.sum(np.linalg.norm(np.diff(enu_positions, axis=0), axis=1)):.1f} m")
 
     publisher = Publisher(ip="0.0.0.0", port=5557)
-    # origin_ecef = pymap3d.geodetic2ecef(*origin_lla)
-    # origin_enu = pymap3d.geodetic2enu(*origin_lla)
     plot = ReplayPlotterSender(enu_positions=enu_positions, origin_lla=origin_lla, publisher=publisher)
-    # plot = ReplayPlotterSender(positions=ecef_positions, origin_position=origin_ecef, publisher=publisher)
     plot.plot_positions()
-
-    # for t, pos in zip(times, positions):
-    #     print(f"t={t:6.1f}s: ECEF {pos}")
-    #     plot.update_curr_pos(pos)
-    #     time.sleep(t)

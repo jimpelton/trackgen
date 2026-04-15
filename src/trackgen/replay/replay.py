@@ -25,9 +25,6 @@ class ReplayPlotterSender:
 
     def _animate(self, frame_idx):
         pos = self._positions[frame_idx]
-        # t = self._times[frame_idx]
-
-        # print(f"t={t:6.1f}s: ECEF {pos}")
         self._curr_pos_marker.set_data_3d([pos[0]], [pos[1]], [pos[2]])
 
         if self._publisher is not None:
@@ -100,7 +97,7 @@ class ReplayPlotterSender:
             self._fig,
             self._animate,
             frames=len(self._positions),
-            interval=self._interval,  # ~20fps, adjust to match your data rate
+            interval=self._interval,
             blit=True,
             repeat=False,
         )

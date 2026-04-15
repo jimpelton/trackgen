@@ -1,7 +1,6 @@
 from typing import Generator, Tuple, Callable
 
 import numpy as np
-import pymap3d
 
 
 def track_generator(
@@ -24,7 +23,6 @@ def track_generator(
     Yields:
         Tuple of (time, position_enu) where position is always above origin altitude
     """
-    lat, lon, alt = origin_lla
 
     t = 0.0
     while t <= duration_seconds:
@@ -36,12 +34,10 @@ def track_generator(
 
         # Map normalized space to ENU offsets:
         #   East/North centered on origin: [-scale/2, +scale/2]
-        #   Up always above ground: [0, scale_meters]
+        #   Up above ground: [0, scale_meters]
         east  = (pos_normalized[0] - 0.5) * scale_meters
         north = (pos_normalized[1] - 0.5) * scale_meters
         up    =  pos_normalized[2]         * scale_meters
-
-        # pos_ecef = np.array(pymap3d.enu2ecef(east, north, up, lat, lon, alt))
 
         yield t, np.array([east, north, up])
         t += time_delta
