@@ -8,6 +8,8 @@ dependencies = [
     "numpy>=2.4.0",
     "scipy>=1.16.3",
     "scipy-stubs~=1.16.3",
+    "pyzmq>=26.0.0",
+    "pymap3d>=3.1.0",
 ]
 
 [dependency-groups]
