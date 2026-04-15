@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import pymap3d
 
 from tracks.generator import track_generator
 from tracks.path import create_smooth_path
@@ -20,14 +21,14 @@ def plot_positions(positions: np.ndarray):
         linewidth=2,
         label="Flight Path",
     )
-    ax.plot(
-        positions[:, 0],
-        positions[:, 1],
-        positions[:, 2],
-        "ro",
-        markersize=4,
-        label="Sample Points",
-    )
+    # ax.plot(
+    #     positions[:, 0],
+    #     positions[:, 1],
+    #     positions[:, 2],
+    #     "ro",
+    #     markersize=4,
+    #     label="Sample Points",
+    # )
 
     # Mark start and end points
     ax.plot(
@@ -57,21 +58,59 @@ def plot_positions(positions: np.ndarray):
     plt.show()
 
 
+_BOISE_ECEF = np.array([-2042359.37, -4150317.47, 4377856.4])
+_BOISE_LLA = np.array([43.6116, -116.2034, 824.0])
+
+
+def parse_args():
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Generate a smooth flight path.")
+    parser.add_argument("--seed", type=int, default=None, help="Random seed for reproducibility (default: random, for a new path)")
+    parser.add_argument(
+        "--num-waypoints", type=int, default=6, help="Number of waypoints for the path"
+    )
+    parser.add_argument(
+        "--duration", type=float, default=60.0, help="Duration of the flight in seconds"
+    )
+    parser.add_argument(
+        "--time-delta", type=float, default=0.10, help="Time step between points in seconds"
+    )
+    parser.add_argument(
+        "--scale-meters", type=float, default=10000.0, help="Scale of the flight volume in meters"
+    )
+    parser.add_argument(
+        "--origin-lla",
+        type=float,
+        nargs=3,
+        default=_BOISE_LLA,
+        help="Origin of the flight in LLA (default Boise, ID)",
+    )
+    return parser.parse_args()
+
+
 # Example usage
 if __name__ == "__main__":
     # origin = np.array([6378137.0, 0.0, 0.0])  # On equator at prime meridian
-    # boise_lla = np.array([43.6116, -116.2034, 824.0])
-    boise_ecef = np.array([-2042359.37, -4150317.47, 4377856.4])
+    args = parse_args()
+    num_waypoints = args.num_waypoints
+    seed = args.seed
+    origin_lla = args.origin_lla
+    scale_meters = args.scale_meters
+    duration_seconds = args.duration
+    time_delta = args.time_delta
 
-    s_waypoints, waypoints = create_waypoints(6, seed=42)
-    path_func = create_smooth_path(s_waypoints, waypoints)
+
+    # s_waypoints, waypoints = create_waypoints(6, seed=42)
+    waypoints = create_waypoints(num_waypoints, seed=seed)
+    path_func = create_smooth_path(waypoints.t_waypoints, waypoints.waypoints)
 
     # Generate a smooth track
     gen = track_generator(
-        origin_ecef=boise_ecef,
-        scale_meters=10000.0,  # 10km flight volume
-        duration_seconds=60.0,  # 1 minute flight
-        time_delta=1.0,  # 1 second samples
+        origin_ecef=np.array(pymap3d.geodetic2ecef(*origin_lla)),
+        scale_meters=scale_meters,
+        duration_seconds=duration_seconds,
+        time_delta=time_delta,
         path_func=path_func,
     )
 
@@ -86,7 +125,7 @@ if __name__ == "__main__":
 
     # Optional: visualize the path
     positions = np.array(positions)
-    print(f"\nGenerated {len(positions)} points")
+    print(f"\nGenerated {len(positions)} points with seed {waypoints.seed}")
     print(f"Distance traveled: {np.sum(np.linalg.norm(np.diff(positions, axis=0), axis=1)):.1f} m")
 
     plot_positions(positions)

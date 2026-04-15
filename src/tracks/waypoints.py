@@ -1,5 +1,6 @@
 # Sinusoidal path (smooth figure-8 style)
-from typing import Tuple
+from dataclasses import dataclass
+from typing import Tuple, Final
 
 import numpy as np
 
@@ -21,19 +22,27 @@ def spiral_path(t: float) -> np.ndarray:
     ])
 
 
+_RANDOM_SEED: Final[None] = None
 
 
-RANDOM_SEED = None
-def create_waypoints(num_waypoints: int, seed: int | None = RANDOM_SEED) -> Tuple[np.ndarray, np.ndarray]:
-    if seed is not None:
-        np.random.seed(seed)
+@dataclass
+class Waypoints:
+    seed: int
+    t_waypoints: np.ndarray
+    waypoints: np.ndarray
 
-    # Create random waypoints in normalized space
+
+def create_waypoints(num_waypoints: int, seed: int | None = _RANDOM_SEED) -> Waypoints:
+    """Create random waypoints in normalized space"""
+    if seed is None:
+        seed = np.random.randint(0, 2**32 - 1)
+
+    rng = np.random.default_rng(seed)
+
+    # Create random sample points
     t_waypoints = np.linspace(0, 1, num_waypoints)
-    waypoints = np.random.rand(num_waypoints, 3)
 
-    # Ensure start and end are within bounds
-    waypoints[0] = np.array([0.1, 0.1, 0.9])
-    waypoints[-1] = np.array([0.9, 0.9, 0.9])
+    # Create the waypoints themselves
+    waypoints = rng.random((num_waypoints, 3))
 
-    return t_waypoints, waypoints
+    return Waypoints(seed, t_waypoints, waypoints)
