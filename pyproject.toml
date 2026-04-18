@@ -1,5 +1,5 @@
 [project]
-name = "tracks-git"
+name = "trackgen"
 version = "0.1.0"
 description = "Add your description here"
 requires-python = ">=3.13"
@@ -10,9 +10,17 @@ dependencies = [
     "scipy-stubs~=1.16.3",
     "pyzmq>=26.0.0",
     "pymap3d>=3.1.0",
+    "pydantic>=2.13.2",
 ]
+
+[project.scripts]
+trackgen = "trackgen:main"
 
 [dependency-groups]
 dev = [
     "black>=25.12.0",
 ]
+
+[build-system]
+requires = ["uv_build>=0.11.4,<0.12.0"]
+build-backend = "uv_build"
