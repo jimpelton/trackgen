@@ -1,4 +1,6 @@
 
+#  Copyright (c) 2026 DevZero Labs LLC. All rights reserved.
+
 # Racing drone
 racing_drone = FlightConstraints(
     max_velocity=50.0,       # 180 km/h

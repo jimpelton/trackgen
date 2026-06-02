@@ -1,3 +1,5 @@
+#  Copyright (c) 2026 DevZero Labs LLC. All rights reserved.
+
 from typing import Generator, Tuple, Callable
 
 import numpy as np

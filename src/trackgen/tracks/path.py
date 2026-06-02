@@ -1,4 +1,6 @@
 
+#  Copyright (c) 2026 DevZero Labs LLC. All rights reserved.
+
 from typing import Callable
 
 import numpy as np

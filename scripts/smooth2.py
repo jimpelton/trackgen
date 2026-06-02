@@ -1,3 +1,5 @@
+#  Copyright (c) 2026 DevZero Labs LLC. All rights reserved.
+
 import numpy as np
 from typing import Generator, Tuple, Callable, Optional, TypeAlias, Dict, List
 from scipy.interpolate import CubicSpline

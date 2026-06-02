@@ -1,3 +1,5 @@
+#  Copyright (c) 2026 DevZero Labs LLC. All rights reserved.
+
 # Sinusoidal path (smooth figure-8 style)
 from dataclasses import dataclass
 from typing import Tuple, Final
