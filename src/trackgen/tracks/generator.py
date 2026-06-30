@@ -8,8 +8,9 @@ import numpy as np
 def track_generator(
         origin_lla: np.ndarray,
         scale_meters: float,
+        vert_scale_meters: float,
         duration_seconds: float,
-        time_delta: float,
+        step_delta: float,
         path_func: Callable[[float], np.ndarray],
 ) -> Generator[Tuple[float, np.ndarray], None, None]:
     """
@@ -19,7 +20,7 @@ def track_generator(
         origin_lla: Origin on the ground in (lat_deg, lon_deg, alt_meters)
         scale_meters: Size of the flight volume in meters (normalized space scaled to this)
         duration_seconds: Total duration of the track
-        time_delta: Time step between points in seconds
+        step_delta: Time step between points in seconds
         path_func: Callable path function(t) that maps [0,1] → [0,1]³
 
     Yields:
@@ -39,10 +40,10 @@ def track_generator(
         #   Up above ground: [0, scale_meters]
         east  = (pos_normalized[0] - 0.5) * scale_meters
         north = (pos_normalized[1] - 0.5) * scale_meters
-        up    =  pos_normalized[2]         * scale_meters
+        up    =  pos_normalized[2]         * vert_scale_meters
 
         yield t, np.array([east, north, up])
-        t += time_delta
+        t += step_delta
 
 
 # class Track:
