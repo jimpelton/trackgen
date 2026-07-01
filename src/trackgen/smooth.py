@@ -69,6 +69,9 @@ def parse_args():
         action="store_true",
         help="Publish telemetry without displaying the matplotlib window (for headless / container use)",
     )
+    parser.add_argument("--ip", type=str, default="0.0.0.0", help="IP addr to bind to (v4, tcp)")
+    parser.add_argument("--port", type=int, default=5557, help="Port to bind publisher to.")
+
     return parser.parse_args()
 
 
@@ -82,6 +85,8 @@ def main():
     vert_scale_meters = args.vert_scale_meters
     duration_seconds = args.duration
     step_delta = args.step_delta
+    ip_addr = args.ip
+    ip_port = args.port
 
     waypoints = create_waypoints(num_waypoints, seed=seed)
     path_func = create_smooth_path(waypoints.t_waypoints, waypoints.waypoints)
@@ -110,7 +115,7 @@ def main():
         f"Distance traveled: {np.sum(np.linalg.norm(np.diff(enu_positions, axis=0), axis=1)):.1f} m"
     )
 
-    publisher = Publisher(ip="0.0.0.0", port=5557)
+    publisher = Publisher(ip=ip_addr, port=ip_port)
 
     if args.no_plot:
         import time

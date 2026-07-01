@@ -1,95 +1,156 @@
 # trackgen
 
-> **Work in progress.** The core pipeline is functional; physics-based parameterization and vehicle constraints are still being implemented or are experimental.
+> **Work in progress.** The core pipeline is functional; physics-based parameterization and vehicle constraints are planned to be done one day, but not today. 
 
-A 3D flight path generator that produces smooth, physically-realistic trajectories and streams them over ZMQ. Paths are generated using cubic spline interpolation through random waypoints, transformed to real-world ECEF/LLA coordinates, and visualized with a 3D matplotlib animation. 
-Sending telemetry via ZMQ pub socket is driven by the matplotlib animation loop right now.
+`trackgen` generates smooth 3D flight paths and publishes latitude/longitude/altitude telemetry over a ZMQ PUB socket. Paths are built from randomized waypoints that are smoothed with cubic spline interpolation and then mapped into a configurable local flight volume. Finally the path is sampled and converted to real-world coordinates and optionally replayed in a 3D matplotlib window.
 
 ## Features
 
 - Smooth cubic spline paths through randomized waypoints
-- Configurable flight volume: origin (lat/lon/alt), scale, and duration
-- Real-world coordinate output (ECEF → LLA) via [pymap3d](https://github.com/geospace-code/pymap3d)
-- ZMQ PUB socket streaming (JSON telemetry at each time step)
+- Configurable flight volume: origin, horizontal scale, vertical scale, duration, and publish interval
+- Real-world WGS-84 latitude/longitude/altitude output via [pymap3d](https://github.com/geospace-code/pymap3d)
+- ZMQ PUB socket streaming with JSON telemetry messages
 - 3D animated replay via matplotlib
+- Headless publishing mode for terminals, containers, and remote sessions
 - Reproducible runs via `--seed`
+
+## Requirements
+
+- Python >= 3.13
+- [uv](https://docs.astral.sh/uv/) for dependency management
+
+Dependencies are managed by `uv` from `pyproject.toml`. 
 
 ## Quickstart
 
+Clone the repository, install dependencies, and run the generator:
+
 ```bash
+git clone <url> trackgen
+cd trackgen
 uv sync
-python src/main.py
+uv run trackgen
 ```
 
-This generates a 60-second flight path centered over Boise, ID at 10 km scale, animates it, and publishes telemetry on `tcp://0.0.0.0:5557`.
+This generates a 60-second flight path centered over Boise, Idaho, and opens a 3D matplotlib replay window, and publishes telemetry on `tcp://0.0.0.0:5557`.
 
-To receive the stream in another terminal:
+You can also run the source entry point directly:
 
 ```bash
-python scripts/sub_data.py
+uv run python src/main.py
+```
+
+## Receive Telemetry
+
+In one terminal, start the generator:
+
+```bash
+uv run trackgen
+```
+
+In another terminal, start the included subscriber:
+
+```bash
+uv run python scripts/sub_data.py
+```
+
+The publisher uses the `telemetry` topic on port `5557` by default. Use `Ctrl-C` to stop either process.
+
+## Headless Mode
+
+Use `--no-plot` when you only want to publish telemetry and do not want the matplotlib UI:
+
+```bash
+uv run trackgen --no-plot
+```
+
+Useful for docker containers. In headless mode trackgen loops over the generated path continuously until stopped.
+
+## Examples
+
+Generate the same path every run:
+
+```bash
+uv run trackgen --seed 42
+```
+
+Generate a longer path in a larger flight volume:
+
+```bash
+uv run trackgen --seed 42 --num-waypoints 8 --duration 120 --scale-meters 20000 --vert-scale-meters 1000
+```
+
+Bind the publisher to a specific interface and port:
+
+```bash
+uv run trackgen --ip 127.0.0.1 --port 6000
+```
+
+Run without installing the console script:
+
+```bash
+uv run python src/main.py --seed 42 --no-plot
 ```
 
 ## CLI Options
 
+```text
+uv run trackgen [options]
+
+  --seed INT                  Random seed for reproducibility (default: random)
+  --num-waypoints INT         Number of control points (default: 6)
+  --duration FLOAT            Flight duration in seconds (default: 60.0)
+  --step-delta FLOAT          Time step between generated/published points in seconds (default: 0.10)
+  --scale-meters FLOAT        Horizontal size of the flight volume in meters (default: 10000.0)
+  --vert-scale-meters FLOAT   Height of the flight volume in meters (default: 500.0)
+  --origin-lla LAT LON ALT    Ground origin of the flight volume (default: Boise, Idaho)
+  --marker-lla LAT LON ALT    Optional LLA marker to overlay on the animation
+  --no-plot                   Publish telemetry without displaying the matplotlib window
+  --ip IP                     IPv4 address to bind the ZMQ publisher to (default: 0.0.0.0)
+  --port PORT                 Port to bind the ZMQ publisher to (default: 5557)
 ```
-python src/main.py [options]
 
-  --seed INT              Random seed for reproducibility (default: random)
-  --num-waypoints INT     Number of control points (default: 6)
-  --duration FLOAT        Flight duration in seconds (default: 60)
-  --time-delta FLOAT      Time step between published points in seconds (default: 0.1)
-  --scale-meters FLOAT    Side length of the cubic flight volume in meters (default: 10000)
-  --origin-lla LAT LON ALT  Ground origin of the flight volume (default: Boise, ID)
-  --marker-lla LAT LON ALT  Optional LLA marker to overlay on the animation
+## Telemetry Format
+
+Telemetry is sent as a multipart ZMQ message:
+
+```text
+topic: telemetry
+payload: JSON
 ```
 
-Example with a fixed seed and larger volume:
+Payload example:
 
-```bash
-python src/main.py --seed 42 --num-waypoints 8 --scale-meters 20000
+```json
+{
+  "version": "v1",
+  "timestamp_us": 1782945600000000,
+  "name": "aircraft_telemetry",
+  "msg_id": "00000000-0000-0000-0000-000000000000",
+  "lat_deg": 43.6123456,
+  "lon_deg": -116.2034567,
+  "alt_hae_m": 1024.123
+}
 ```
 
 ## How It Works
 
-1. **Waypoints** — random 3D control points are generated in normalized [0,1]³ space.
-2. **Spline** — a cubic spline is fit through the waypoints (`bc_type='natural'`), producing a smooth path function `path(s)` for `s ∈ [0,1]`.
-3. **ECEF transform** — the generator maps normalized positions to East/North/Up offsets around the origin, then converts to ECEF using `pymap3d.enu2ecef`.
-4. **Publish** — each `(time, position_ecef)` pair is converted to LLA and published as JSON over ZMQ.
-5. **Replay** — `ReplayPlotterSender` animates the full path in 3D and optionally re-streams it through the publisher.
+1. **Waypoints** - random 3D control points are generated in normalized `[0, 1]^3` space.
+2. **Spline** - a cubic spline is fit through the waypoints, producing a smooth path function over `[0, 1]`.
+3. **Track generation** - the path is evaluated at `--step-delta` intervals and mapped into East/North/Up offsets around `--origin-lla`.
+4. **Coordinate conversion** - ENU positions are converted to geodetic latitude/longitude/altitude with `pymap3d`.
+5. **Publish and replay** - telemetry is published over ZMQ while the path is replayed in matplotlib, unless `--no-plot` is used.
 
-## Project Structure
+## Development
 
-```
-src/trackgen/
-  smooth.py           # CLI entry point and end-to-end pipeline
-  tracks/
-    waypoints.py      # Waypoint generation (random, sinusoidal, spiral)
-    path.py           # Cubic spline path creation
-    generator.py      # ECEF coordinate transform and time iteration
-  io/
-    publisher.py      # ZMQ PUB socket, ECEF→LLA, JSON serialization
-  replay/
-    replay.py         # Matplotlib 3D animation + optional ZMQ replay
-scripts/
-  sub_data.py         # ZMQ subscriber test client
-  smooth2.py          # Experimental physics-constrained generator
-research/             # Design notes and background reading
+Install development dependencies:
+
+```bash
+uv sync --dev
 ```
 
-## Status
+Format the code:
 
-| Component | State |
-|---|---|
-| Core spline pipeline | Working |
-| ZMQ publisher | Working |
-| 3D matplotlib replay | Working |
-| Physics-based parameterization | Experimental (`scripts/smooth2.py`) |
-| Vehicle constraints (`vehicles.py`) | Defined, not wired in |
-| Test suite | Not yet written |
-
-## Requirements
-
-- Python ≥ 3.13
-- [uv](https://docs.astral.sh/uv/) for dependency management
-
-Key dependencies: `numpy`, `scipy`, `pymap3d`, `pyzmq`, `matplotlib`, `pydantic`.
+```bash
+uv run black src
+```
