@@ -1,4 +1,3 @@
-
 #  Copyright (c) 2026 DevZero Labs LLC. All rights reserved.
 
 from typing import Tuple, Collection
@@ -15,9 +14,10 @@ class ReplayPlotterSender:
     def __init__(
         self,
         enu_positions: Collection[Tuple[float, float, float]],
-        origin_lla: Tuple[float, float, float] ,
+        origin_lla: Tuple[float, float, float],
         publisher: Publisher | None = None,
         interval_ms: float = 50,
+        repeat: bool = False,
     ):
         self._curr_pos_marker = None
         self._fig = None  # keep a reference for redraws
@@ -25,6 +25,7 @@ class ReplayPlotterSender:
         self._positions = enu_positions
         self._origin_lla = origin_lla
         self._interval = interval_ms
+        self._repeat = repeat
 
     def _animate(self, frame_idx):
         pos = self._positions[frame_idx]
@@ -75,7 +76,9 @@ class ReplayPlotterSender:
             # [self._origin_position[0]],
             # [self._origin_position[1]],
             # [self._origin_position[2]],
-            [0], [0], [0],
+            [0],
+            [0],
+            [0],
             "kx",
             markersize=10,
             label="Origin",
@@ -102,7 +105,7 @@ class ReplayPlotterSender:
             frames=len(self._positions),
             interval=self._interval,
             blit=True,
-            repeat=False,
+            repeat=self._repeat,
         )
 
         plt.show()

@@ -41,7 +41,9 @@ class Publisher:
             lon_deg=round(float(lon), 7),
             alt_hae_m=round(float(alt), 3),
         )
-        self._pub.send_multipart([self._topic, message.model_dump_json().encode()], flags=zmq.NOBLOCK)
+        self._pub.send_multipart(
+            [self._topic, message.model_dump_json().encode()], flags=zmq.NOBLOCK
+        )
 
     def close(self):
         logger.info("Closing publisher")

@@ -8,20 +8,21 @@ import numpy as np
 
 
 def sinusoidal_path(t: float) -> np.ndarray:
-    return np.array([
-        0.5 + 0.3 * np.sin(2 * np.pi * t),
-        0.5 + 0.3 * np.sin(4 * np.pi * t),
-        0.5 + 0.2 * np.sin(3 * np.pi * t)
-    ])
+    return np.array(
+        [
+            0.5 + 0.3 * np.sin(2 * np.pi * t),
+            0.5 + 0.3 * np.sin(4 * np.pi * t),
+            0.5 + 0.2 * np.sin(3 * np.pi * t),
+        ]
+    )
+
 
 # Circular climbing path
 def spiral_path(t: float) -> np.ndarray:
     angle = 4 * np.pi * t
-    return np.array([
-        0.5 + 0.4 * np.cos(angle),
-        0.5 + 0.4 * np.sin(angle),
-        t  # Linear climb
-    ])
+    return np.array(
+        [0.5 + 0.4 * np.cos(angle), 0.5 + 0.4 * np.sin(angle), t]  # Linear climb
+    )
 
 
 _RANDOM_SEED: Final[None] = None

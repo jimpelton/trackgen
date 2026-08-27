@@ -1,0 +1,29 @@
+# Example trackgen scenario.
+#
+#   uv run trackgen --config scenarios/example.toml circle --no-plot
+#
+# [common] applies to every shape; a per-shape table overrides it for that
+# shape alone. Command-line flags and TRACKGEN_* env vars still win over both.
+# Keys may be written with dashes or underscores.
+
+[common]
+origin-lla = [43.6116, -116.2034, 824.0]  # Boise, ID
+scale-meters = 20000.0
+vert-scale-meters = 1000.0
+duration = 120.0
+step-delta = 0.10
+port = 5557
+
+[smooth]
+seed = 42
+num-waypoints = 8
+
+[circle]
+radius-m = 6000.0
+altitude-m = 750.0
+revolutions = 3.0
+
+[grid]
+num-lines = 8
+altitude-m = 400.0
+margin-m = 2000.0
