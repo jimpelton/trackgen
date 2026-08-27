@@ -1,4 +1,3 @@
-
 #  Copyright (c) 2026 DevZero Labs LLC. All rights reserved.
 
 from typing import Callable
@@ -6,7 +5,10 @@ from typing import Callable
 import numpy as np
 from scipy.interpolate import CubicSpline
 
-def create_smooth_path(s_waypoints: np.ndarray, waypoints: np.ndarray) -> Callable[[float], np.ndarray]:
+
+def create_smooth_path(
+    s_waypoints: np.ndarray, waypoints: np.ndarray
+) -> Callable[[float], np.ndarray]:
     """
     Create a smooth 3D path function that maps t ∈ [0,1] to positions ∈ [0,1]³.
 
@@ -16,8 +18,9 @@ def create_smooth_path(s_waypoints: np.ndarray, waypoints: np.ndarray) -> Callab
     """
 
     # Create cubic splines for each dimension
-    splines = [CubicSpline(s_waypoints, waypoints[:, i], bc_type='natural')
-               for i in range(3)]
+    splines = [
+        CubicSpline(s_waypoints, waypoints[:, i], bc_type="natural") for i in range(3)
+    ]
 
     def path(s: float) -> np.ndarray:
         """Evaluate path at s ∈ [0,1]"""
@@ -27,8 +30,9 @@ def create_smooth_path(s_waypoints: np.ndarray, waypoints: np.ndarray) -> Callab
     return path
 
 
-def create_circular_path(radius: float = 0.4, height: float = 0.5,
-                          revolutions: float = 1.0) -> Callable[[float], np.ndarray]:
+def create_circular_path(
+    radius: float = 0.4, height: float = 0.5, revolutions: float = 1.0
+) -> Callable[[float], np.ndarray]:
     """
     Create a circular 3D path function centered on the origin at a fixed altitude.
 
@@ -42,15 +46,16 @@ def create_circular_path(radius: float = 0.4, height: float = 0.5,
         """Evaluate path at s ∈ [0,1]"""
         s_clamped = np.clip(s, 0, 1)
         theta = 2 * np.pi * revolutions * s_clamped
-        return np.array([0.5 + radius * np.cos(theta),
-                          0.5 + radius * np.sin(theta),
-                          height])
+        return np.array(
+            [0.5 + radius * np.cos(theta), 0.5 + radius * np.sin(theta), height]
+        )
 
     return path
 
 
-def create_grid_path(num_lines: int = 5, height: float = 0.5,
-                      margin: float = 0.1) -> Callable[[float], np.ndarray]:
+def create_grid_path(
+    num_lines: int = 5, height: float = 0.5, margin: float = 0.1
+) -> Callable[[float], np.ndarray]:
     """
     Create a lawnmower (boustrophedon) 3D path that sweeps back and forth across
     the [0,1]² plane at a fixed altitude, like a grid survey pattern. The path

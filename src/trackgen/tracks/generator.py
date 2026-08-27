@@ -6,12 +6,12 @@ import numpy as np
 
 
 def track_generator(
-        origin_lla: np.ndarray,
-        scale_meters: float,
-        vert_scale_meters: float,
-        duration_seconds: float,
-        step_delta: float,
-        path_func: Callable[[float], np.ndarray],
+    origin_lla: np.ndarray,
+    scale_meters: float,
+    vert_scale_meters: float,
+    duration_seconds: float,
+    step_delta: float,
+    path_func: Callable[[float], np.ndarray],
 ) -> Generator[Tuple[float, np.ndarray], None, None]:
     """
     Generate smooth ECEF track coordinates following a curved path.
@@ -38,9 +38,9 @@ def track_generator(
         # Map normalized space to ENU offsets:
         #   East/North centered on origin: [-scale/2, +scale/2]
         #   Up above ground: [0, scale_meters]
-        east  = (pos_normalized[0] - 0.5) * scale_meters
+        east = (pos_normalized[0] - 0.5) * scale_meters
         north = (pos_normalized[1] - 0.5) * scale_meters
-        up    =  pos_normalized[2]         * vert_scale_meters
+        up = pos_normalized[2] * vert_scale_meters
 
         yield t, np.array([east, north, up])
         t += step_delta

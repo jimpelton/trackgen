@@ -1,4 +1,3 @@
-
 #  Copyright (c) 2026 DevZero Labs LLC. All rights reserved.
 
 from typing import Tuple, Collection
@@ -15,7 +14,7 @@ class ReplayPlotterSender:
     def __init__(
         self,
         enu_positions: Collection[Tuple[float, float, float]],
-        origin_lla: Tuple[float, float, float] ,
+        origin_lla: Tuple[float, float, float],
         publisher: Publisher | None = None,
         interval_ms: float = 50,
         repeat: bool = False,
@@ -77,7 +76,9 @@ class ReplayPlotterSender:
             # [self._origin_position[0]],
             # [self._origin_position[1]],
             # [self._origin_position[2]],
-            [0], [0], [0],
+            [0],
+            [0],
+            [0],
             "kx",
             markersize=10,
             label="Origin",
