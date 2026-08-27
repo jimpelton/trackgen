@@ -58,9 +58,11 @@ def create_grid_path(
 ) -> Callable[[float], np.ndarray]:
     """
     Create a lawnmower (boustrophedon) 3D path that sweeps back and forth across
-    the [0,1]² plane at a fixed altitude, like a grid survey pattern. The path
-    retraces itself on the way back, so it ends where it started and can be
-    looped seamlessly (e.g. in headless mode).
+    the [0,1]² plane at a fixed altitude, like a grid survey pattern. Short
+    connector legs join the end of each pass to the start of the next, and u is
+    parameterized by arc length so samples land on every leg. The path retraces
+    itself on the way back, so it ends where it started and can be looped
+    seamlessly (e.g. in headless mode).
 
     :param num_lines: Number of back-and-forth passes across the grid
     :param height: Fixed normalized altitude ∈ [0,1]
@@ -71,18 +73,34 @@ def create_grid_path(
     low = margin
     high = 1.0 - margin
 
+    # Explicit waypoints for the one-way sweep: num_lines passes joined by
+    # num_lines - 1 short connectors at alternating ends (boustrophedon).
+    ys = np.linspace(low, high, num_lines)
+    leg_waypoints: list[np.ndarray] = []
+    for i, y in enumerate(ys):
+        x_start = low if i % 2 == 0 else high
+        x_end = high if i % 2 == 0 else low
+        # x_start coincides with the previous pass's end: this is the connector
+        leg_waypoints.append(np.array([x_start, y, height]))
+        leg_waypoints.append(np.array([x_end, y, height]))
+
+    # Cumulative arc length for constant-speed parameterization
+    diffs = np.diff(np.array(leg_waypoints), axis=0)
+    cumulative = np.concatenate(([0.0], np.cumsum(np.linalg.norm(diffs, axis=1))))
+    total_length = cumulative[-1]
+
     def sweep(u: float) -> np.ndarray:
-        """Evaluate the one-way grid sweep at u ∈ [0,1]"""
-        segment = np.clip(u * num_lines, 0, num_lines - 1e-9)
-        line_index = int(np.floor(segment))
-        local_t = segment - line_index
-
-        # Alternate sweep direction each line so consecutive passes connect
-        s_dir = local_t if line_index % 2 == 0 else 1.0 - local_t
-        x = low + s_dir * (high - low)
-        y = low + (line_index / max(num_lines - 1, 1)) * (high - low)
-
-        return np.array([x, y, height])
+        """Evaluate the one-way grid sweep at u ∈ [0,1] (arc-length parameterized)"""
+        target = np.clip(u, 0.0, 1.0) * total_length
+        # Piecewise-linear interpolation across the legs
+        for i in range(len(cumulative) - 1):
+            if target <= cumulative[i + 1] or i == len(cumulative) - 2:
+                leg_t = (target - cumulative[i]) / (cumulative[i + 1] - cumulative[i])
+                leg_t = np.clip(leg_t, 0.0, 1.0)
+                return leg_waypoints[i] + leg_t * (
+                    leg_waypoints[i + 1] - leg_waypoints[i]
+                )
+        return leg_waypoints[-1]
 
     def path(s: float) -> np.ndarray:
         """Evaluate path at s ∈ [0,1]; retraces the sweep on the second half"""
